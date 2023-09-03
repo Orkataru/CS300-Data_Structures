@@ -1,0 +1,78 @@
+#include "PhoneBook.h"
+#include <fstream>
+#include <iostream>
+#include <string>
+
+using namespace std;
+
+
+
+int main() {
+	string filename;
+	PhoneBook<string> Phonebook;
+	int input;
+	cout << "Please enter the contact file name: " << endl;
+	cin >> filename;
+	Phonebook.LoadtoBST(filename);
+	Phonebook.LoadtoAVL(filename);
+	cout << "\n\n";
+
+
+	do{		
+
+		cout << "Choose which action to perform from 1 to 6:\n\
+1 - Search a phonebook contact\n\
+2 - Adding a phonebook contact\n\
+3 - Deleting a phonebook contact\n\
+4 - Print the phonebook to a file(inorder)\n\
+Print the phonebook to a file(preorder)\n\
+5 - Draw the phonebook as a Tree to a file\n\
+6 - Press 6 to exit \n";
+
+		cin >> input;
+		cout << "\n";
+		// search
+		if (input == 1)
+		{
+			string search;
+			cout << "Search for a contact: ";
+			getline(cin >> ws, search);
+			Phonebook.SearchAContact(search);
+
+		}
+		else if (input == 2) {
+			string name, surname, phone, city;
+			cout << "Enter the information of the contact to be added:" << endl;
+			cout << "Name: ";
+			cin >> name >> surname;
+			cout << "Tel: ";
+			cin >> phone;
+			cout << "City: ";
+			cin >> city;
+			Phonebook.AddContact(name, surname, phone, city);
+		}
+		else if (input == 3) {
+			string name, surname;
+
+			cout << "Deleting an item from the phonebook . . . " << endl
+				<< "Enter the fullname of the contact to be deleted : ";
+			cin >> name >> surname;
+			Phonebook.DeleteContact(name, surname);
+		}
+		else if (input == 4) {
+			Phonebook.InOrderPrintToFile();
+			Phonebook.PreOrderPrintToFile();
+		}
+		else if (input == 5) {
+			ofstream file_bstTree("phonebookTreeBST.txt");
+			ofstream file_avlTree("phonebookTreeAVL.txt");
+
+			Phonebook.DrawTreeToFile(file_bstTree, file_avlTree);
+
+		}
+
+	} while (input != 6);
+
+	cout << "Exiting..." << endl;
+	return 0;
+}

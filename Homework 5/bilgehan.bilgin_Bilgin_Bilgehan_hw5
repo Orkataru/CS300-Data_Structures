@@ -1,0 +1,409 @@
+#include <fstream>
+#include <iostream>
+#include <string>
+#include <sstream>
+#include <vector>
+#include "strutils.h"
+#include <chrono>
+#include <algorithm>
+
+using namespace std;
+
+template<typename T>
+class Contact {
+public:
+    T name, surname, phone, city, key;
+
+    // constructor
+    Contact(T name, T surname, T phone, T city) : name(name), surname(surname), phone(phone), city(city), key(UpperString(name + " " + surname)) {}
+    Contact() {}
+
+    // copy constructor
+    Contact(const Contact& old_contact) {
+        name = old_contact.name;
+        surname = old_contact.surname;
+        phone = old_contact.phone;
+        city = old_contact.city;
+        key = old_contact.key;
+    }
+
+    // overloaded comparison operators
+    bool operator==(const Contact& rhs) const {
+        return (rhs.key == key);
+    }
+    bool operator<(const Contact& rhs) const {
+        return (rhs.key < key);
+    }
+    bool operator>(const Contact& rhs) const {
+        return (rhs.key > key);
+    }    
+    bool operator>=(const Contact& rhs) const {
+        return (rhs.key >= key);
+    }    
+    bool operator<=(const Contact& rhs) const {
+        return (rhs.key <= key);
+    }
+
+
+    // overloaded assignment operator
+    Contact& operator=(const Contact& rhs) {
+        if (this == &rhs) return *this;
+        name = rhs.name;
+        surname = rhs.surname;
+        phone = rhs.phone;
+        city = rhs.city;
+        key = rhs.key;
+        return *this;
+    }
+
+
+};
+
+// reads a file and loads its content into a vector of Contacts
+void LoadtoVector(vector<Contact<string>>& contacts) {
+
+    cout << "Please enter the contact file name:\n";
+
+    string filename;
+    cin >> filename;
+
+    // read from file
+    ifstream file_in(filename);
+    if (file_in.is_open())
+    {
+        do
+        {
+            string name, surname, phone, city, line;
+            getline(file_in, line);
+            stringstream s(line);
+
+            s >> name;
+            s >> surname;
+            s >> phone;
+            s >> city;
+
+            if (name == "") continue;
+
+            Contact<string> contact(name, surname, phone, city);
+            contacts.push_back(contact);
+
+
+            //contacts.emplace_back(name, surname, phone, city);
+
+        } while (!file_in.eof());
+    }
+
+}
+
+
+// helper function for quicksort
+const Contact<string>& median(vector<Contact<string>>& a, int left, int right)
+{
+    int center = (left + right) / 2;
+    if (a[center] < a[left])
+        swap(a[left], a[center]);
+    if (a[right] < a[left])
+        swap(a[left], a[right]);
+    if (a[right] < a[center])
+        swap(a[center], a[right]);
+
+    // Place pivot at position right - 1
+    swap(a[center], a[right - 1]);
+    return a[right - 1];
+}
+
+
+void insertion_sort(vector<Contact<string>>& a, int left, int right) {
+
+    for (int p = left + 1; p <= right; p++)
+    {
+        Contact<string> tmp = a[p];
+        int j;
+
+        for (j = p; j > left && tmp < a[j - 1]; j--)
+            a[j] = a[j - 1];
+        a[j] = tmp;
+    }
+}
+
+
+void quick_sort(vector<Contact<string>>& a, int left, int right){
+
+
+
+    if (left + 10 <= right)
+    {
+        Contact<string> pivot = median(a, left, right);
+
+        // Begin partitioning
+        int i = left, j = right - 1;
+        for (; ; )
+        {
+            while (a[++i] < pivot) {}
+
+            while (pivot < a[--j]) {}
+
+            if (i < j)
+                swap(a[i], a[j]);
+            else
+                break;
+        }
+        swap(a[i], a[right - 1]);   // Restore pivot
+
+        quick_sort(a, left, i - 1);       // Sort small elements
+        quick_sort(a, i + 1, right);    // Sort large elements
+    }
+    else
+    {
+        insertion_sort(a, left, right);
+    }
+        
+}
+
+
+void merge(std::vector<Contact<string>>& arr, int left, int middle, int right) {
+    int i, j, k;
+    int n1 = middle - left + 1;
+    int n2 = right - middle;
+
+    // Create temporary arrays
+    vector<Contact<string>> L(n1), R(n2);
+
+    // Copy data to temporary arrays
+    for (i = 0; i < n1; i++)
+        L[i] = arr[left + i];
+    for (j = 0; j < n2; j++)
+        R[j] = arr[middle + 1 + j];
+
+    // Merge the temporary arrays back into arr
+    i = 0;  // Initial index of first subarray
+    j = 0;  // Initial index of second subarray
+    k = left;  // Initial index of merged subarray
+
+    while (i < n1 && j < n2) {
+        if (L[i].name <= R[j].name) {
+            arr[k] = L[i];
+            i++;
+        }
+        else {
+            arr[k] = R[j];
+            j++;
+        }
+        k++;
+    }
+
+    // Copy the remaining elements of L[], if there are any
+    while (i < n1) {
+        arr[k] = L[i];
+        i++;
+        k++;
+    }
+
+    // Copy the remaining elements of R[], if there are any
+    while (j < n2) {
+        arr[k] = R[j];
+        j++;
+        k++;
+    }
+}
+
+void mergeSort(std::vector<Contact<string>>& arr, int left, int right) {
+    if (left < right) {
+        int middle = left + (right - left) / 2;
+
+        // Sort first and second halves
+        mergeSort(arr, left, middle);
+        mergeSort(arr, middle + 1, right);
+
+        // Merge the sorted halves
+        merge(arr, left, middle, right);
+    }
+}
+
+inline int leftChild(int i)
+{
+    return 2 * i + 1;
+}
+
+// helper function for heap_sort
+void percDown(vector<Contact<string>>& a, int i, int n)
+{
+    int child;
+    Contact<string> tmp;
+
+    for (tmp = a[i]; leftChild(i) < n; i = child)
+    {
+        child = leftChild(i);
+        if (child != n - 1 && a[child] < a[child + 1])
+            child++;
+        if (a[child] > tmp)
+            a[i] = a[child];
+        else
+            break;
+    }
+    a[i] = tmp;
+}
+
+void heap_sort(vector<Contact<string>>& a) {
+    // buildHeap
+    for (int i = a.size() / 2; i >= 0; i--)
+        percDown(a, i, a.size());
+
+    // sort
+    for (int j = a.size()-1; j > 0; j--)
+    {
+        swap(a[0], a[j]);    // swap max to the last pos.
+        percDown(a, 0, j); // re-form the heap
+    }
+
+}
+
+void insertion_sort(vector <Contact<string>>& a)
+{
+    int j;
+    // loop over the passes
+    for (int p = 1; p < a.size(); p++)
+    {
+        Contact<string> tmp = a[p];
+        // loop over the elements
+        for (j = p; j > 0 && tmp < a[j -1]; j--)
+            a[j] = a[j -1];
+        a[j] = tmp;
+    }
+}
+
+
+void sequential_search(const vector<Contact<string>>& vec, string& con) {
+
+    bool done = false, found = false;
+    ToUpper(con);
+    cout << "Search results for Sequential Search:\n";
+
+
+    for (size_t i = 0; i < vec.size(); i++)
+    {
+        if (vec[i].key.find(con) == 0) {
+
+            cout << vec[i].key << " "
+                << vec[i].phone << " "
+                << vec[i].city << endl;
+            found = true;
+
+            if (i + 1 != vec.size() && vec.at(i + 1).key.find(con) != 0) {
+                done = true;
+            }
+        }
+
+        if (done && found) break;
+
+    }
+    if (!found)
+        cout << con << " does NOT exist in the dataset\n";
+}
+
+void binary_search(const vector<Contact<string>>& vec, string& con) {
+    int low = 0;
+    int high = vec.size() - 1;
+    ToUpper(con);
+
+    while (low <= high)
+    {
+        int mid = low + (high - low) / 2;
+
+        if (vec[mid].key.find(UpperString(con)) == 0)
+        {
+            // find the first occurence
+            while (mid != 0 && vec[mid-1].key.find(con) == 0)
+                mid--;
+            
+            // print the contacts
+            while (vec[mid].key.find(con) == 0)
+            {
+                cout << UpperString(vec[mid].key) << " "
+                    << vec[mid].phone << " "
+                    << vec[mid].city << endl;
+                mid++;
+            }
+            return;
+        }
+            
+        else if (vec[mid].key.substr(0, con.size()) < con)
+            low = mid + 1;
+        else
+            high = mid - 1;
+    }
+    cout << con << " does NOT exist in the dataset\n";
+}
+
+
+int main() {
+
+    vector<Contact<string>> contacts;
+    LoadtoVector(contacts);
+
+    // create 4 copies of the vector for sorting algo's
+    vector<Contact<string>> contacts1 = contacts, contacts2 = contacts, contacts3 = contacts;
+
+    // Start sorting
+    cout << "Sorting the vector copies\n======================================\n";
+
+    auto start_quick = std::chrono::high_resolution_clock::now();	// start timer 
+    quick_sort(contacts, 0, contacts.size()-1);
+    auto finish_quick = std::chrono::high_resolution_clock::now();	// stop timer 
+    auto quick_time = std::chrono::duration_cast<std::chrono::nanoseconds>(finish_quick - start_quick).count();
+    cout << "Quick Sort Time: " << quick_time << " Nanoseconds" << endl;
+    
+    auto start_ins = std::chrono::high_resolution_clock::now();	// start timer 
+    insertion_sort(contacts1);
+    auto finish_ins = std::chrono::high_resolution_clock::now();	// stop timer 
+    long double ins_time = std::chrono::duration_cast<std::chrono::nanoseconds>(finish_ins - start_ins).count();
+    cout << "Insertion Sort Time: " <<ins_time << " Nanoseconds" << endl;
+
+    auto start_merge = std::chrono::high_resolution_clock::now();	// start timer 
+    mergeSort(contacts2, 0, contacts2.size()-1);
+    auto finish_merge = std::chrono::high_resolution_clock::now();	// stop timer 
+    long double merge_time = std::chrono::duration_cast<std::chrono::nanoseconds>(finish_merge - start_merge).count();
+    cout << "Merge Sort Time: " << merge_time << " Nanoseconds" << endl;
+
+    auto start_heap = std::chrono::high_resolution_clock::now();	// start timer 
+    heap_sort(contacts3);
+    auto finish_heap = std::chrono::high_resolution_clock::now();	// stop timer 
+    long double heap_time = std::chrono::duration_cast<std::chrono::nanoseconds>(finish_heap - start_heap).count();
+    cout << "Heap Sort Time: " << heap_time << " Nanoseconds" << endl;
+
+    cout << "\n";
+
+    reverse(contacts.begin(), contacts.end());
+
+    // Start searching
+    string search_q;
+    cout << "Please enter the word to be queried :\n";
+    getline(cin >> ws, search_q);
+
+    cout << "Searching for "  << search_q << "\n======================================\n";
+
+    auto start_bin = std::chrono::high_resolution_clock::now();	// start timer 
+    binary_search(contacts, search_q);
+    auto finish_bin = std::chrono::high_resolution_clock::now();	// stop timer 
+    long double bin_time = std::chrono::duration_cast<std::chrono::nanoseconds>(finish_bin - start_bin).count();
+    cout << "Binary Search Time: " << bin_time << " Nanoseconds\n" << endl;
+
+
+    auto start_seq = std::chrono::high_resolution_clock::now();	// start timer 
+    sequential_search(contacts, search_q);
+    auto finish_seq = std::chrono::high_resolution_clock::now();	// stop timer 
+    long double seq_time = std::chrono::duration_cast<std::chrono::nanoseconds>(finish_seq - start_seq).count();
+    cout << "Sequential Search Time: " << seq_time << " Nanoseconds\n" << endl;
+
+    cout << "\n";
+
+    cout << "SpeedUp between Search Algorithms\n======================================\n";
+    cout << "(Sequential Search/ Binary Search) SpeedUp = " << seq_time / bin_time;
+
+    cout << "\n\n";
+
+    cout << "SpeedUps between Sorting Algorithms\n======================================\n";
+    cout << "(Insertion Sort / Quick Sort) SpeedUp = " << ins_time / quick_time << endl;
+    cout << "(Merge Sort / Quick Sort) SpeedUp = " << merge_time / quick_time << endl;
+    cout << "(Heap Sort / Quick Sort) SpeedUp = " << heap_time / quick_time << endl;
+}

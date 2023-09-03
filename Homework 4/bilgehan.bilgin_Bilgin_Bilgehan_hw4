@@ -1,0 +1,63 @@
+#include "PhoneBook.h"
+#include <fstream>
+#include <iostream>
+#include <string>
+
+using namespace std;
+
+int main() {
+	string filename;
+	PhoneBook<string> Phonebook;
+	cout << "Enter the file name: " << endl;
+	cin >> filename;
+	Phonebook.LoadtoBST(filename);
+	Phonebook.LoadtoHT(filename);
+	cout << "\n";
+	int input;
+
+
+	do {
+
+cout << "\nChoose which action to perform from 1 to 4:\n\
+1 - Search a phonebook contact\n\
+2 - Adding a phonebook contact\n\
+3 - Deleting a phonebook contact\n\
+4 - Press 4 to exit \n";
+
+		cin >> input;
+		cout << "\n";
+		// search
+		if (input == 1)
+		{
+			string search;
+			cout << "Enter name to search for: ";
+			getline(cin >> ws, search);
+			Phonebook.SearchAContact(search);
+
+		}
+		else if (input == 2) {
+			string name, surname, phone, city;
+			cout << "Enter the information of the contact to be added:" << endl;
+			cout << "Name: ";
+			cin >> name >> surname;
+			cout << "Tel: ";
+			cin >> phone;
+			cout << "City: ";
+			cin >> city;
+			Phonebook.AddContact(name, surname, phone, city);
+		}
+		else if (input == 3) {
+			string name, surname;
+
+			cout << "Deleting an item from the phonebook . . . " << endl
+				<< "Enter the fullname of the contact to be deleted : ";
+			cin >> name >> surname;
+			Phonebook.DeleteContact(name, surname);
+		}
+
+
+	} while (input != 4);
+
+	cout << "Exiting..." << endl;
+	return 0;
+}

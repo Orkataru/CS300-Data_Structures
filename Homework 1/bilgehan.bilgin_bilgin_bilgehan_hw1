@@ -1,0 +1,542 @@
+// Created by Bilgehan Bilgin | ID: 00030902
+
+#include <iostream>
+#include <random>
+#include <string>
+#include <fstream>
+#include <stdexcept>
+#include <array> 
+#include <algorithm>
+
+
+using namespace std;
+
+
+template <class Object>
+class Stack
+{
+public:
+	Stack();
+	Stack(const Stack&);
+	~Stack();
+
+	bool isEmpty() const;
+	bool isFull() const;
+	void makeEmpty();
+
+	void pop() ;
+	void push(const Object& x);
+	Object topAndPop();
+	
+	Object& top() const;
+
+	const Stack& operator=(const Stack& rhs);
+
+private:
+	struct ListNode
+	{
+		Object   element;
+		ListNode* next;
+
+		ListNode(const Object& theElement, ListNode* n = nullptr)
+			: element(theElement), next(n) { }
+	};
+
+	ListNode* topOfStack;  // list itself is the stack
+};
+
+
+/**
+		* Construct the stack.
+		*/
+template <class Object>
+Stack<Object>::Stack()
+{
+	topOfStack = NULL;
+}
+
+
+/**
+	   * Test if the stack is logically full.
+	   * Return false always, in this implementation.
+	   */
+template <class Object>
+bool Stack<Object>::isFull() const
+{
+	return false;
+}
+
+/**
+	   * Test if the stack is logically empty.
+	   * Return true if empty, false, otherwise.
+	   */
+template <class Object>
+bool Stack<Object>::isEmpty() const
+{
+	return topOfStack == NULL;
+}
+
+/**
+	   * Get the most recently inserted item in the stack.
+	   * Return the most recently inserted item in the stack
+	   * or throw an exception if empty.
+	   */
+template <class Object>
+Object& Stack<Object>::top() const
+{
+	if (isEmpty())
+		throw underflow_error("Stack is empty!");
+	return topOfStack->element;
+}
+
+/**
+	   * Get the most recently inserted item in the stack.
+	   * Return the most recently inserted item in the stack
+	   * or throw an exception if empty.
+	   */
+template <class Object>
+void Stack<Object>::pop()
+{
+	if (isEmpty())
+		throw underflow_error("Stack is empty!");
+	ListNode* oldTop = topOfStack;
+	topOfStack = topOfStack->next;
+	delete oldTop;
+}
+
+/**
+		 * Insert x into the stack.
+		 */
+template <class Object>
+void Stack<Object>::push(const Object& x)
+{
+	topOfStack = new ListNode(x, topOfStack);
+}
+
+
+
+/**
+	   * Return and remove the most recently
+	   * inserted item from the stack.
+	   */
+template <class Object>
+Object Stack<Object>::topAndPop()
+{
+	Object topItem = top();
+	pop();
+	return topItem;
+}
+
+
+/**
+	   * Make the stack logically empty.
+	   */
+template <class Object>
+void Stack<Object>::makeEmpty()
+{
+	while (!isEmpty())
+		pop();
+}
+
+/**
+	   * Deep copy.
+	   */
+template <class Object>
+const Stack<Object>& Stack<Object>::
+operator=(const Stack<Object>& rhs)
+{
+	if (this != &rhs)
+	{
+		makeEmpty();
+		if (rhs.isEmpty())
+			return *this;
+
+		ListNode* rptr = rhs.topOfStack;
+		ListNode* ptr = new ListNode(rptr->element);
+		topOfStack = ptr;
+
+		for (rptr = rptr->next; rptr != NULL; rptr = rptr->next)
+			ptr = ptr->next = new ListNode(rptr->element);
+	}
+	return *this;
+}
+
+/**
+* Copy constructor.
+*/
+template <class Object>
+Stack<Object>::Stack(const Stack<Object>& rhs)
+{
+	topOfStack = NULL;
+	*this = rhs; // deep copy 
+}
+
+/**
+	   * Destructor.
+	   */
+template <class Object>
+Stack<Object>::~Stack()
+{
+	makeEmpty();
+}
+
+// Cell definition, for the Maze
+struct Cell {
+	Cell *right, * left, * down, * up;
+	Cell(): right(NULL), left(NULL), down(NULL), up(NULL) {};
+	bool w_up = true, w_down = true, w_left = true, w_right = true;
+	vector<Cell*> unvisited_neighbors; 
+	bool visited = false;
+	array<int, 2> coor;
+};
+
+// Has a matrix named maze, which is made up of MxN many Cell objects 
+class Maze {
+private:
+	const int M, N;
+public: 
+	vector<vector<Cell> > maze;
+
+	Maze(int &m, int &n): M(m), N(n) {
+		Cell c;
+		vector<Cell> v(N, c);
+		maze.resize(M,v);
+		// Set up the coordinates of the cells and initialize their variables
+		for (size_t i = 0; i < M ;i++)
+		{
+			for (size_t j = 0; j < N; j++)
+			{
+				Cell* currentCell = &maze[i][j];
+				currentCell->coor[0] = j;
+				currentCell->coor[1] = M - i - 1; 
+				if (j < N-1)
+				{
+					currentCell->right = &maze[i][j + 1];
+					currentCell->unvisited_neighbors.push_back(&maze[i][j + 1]);
+				}
+				if (i < M-1)
+				{
+					currentCell->down = &maze[i + 1][j];
+					currentCell->unvisited_neighbors.push_back(&maze[i + 1][j]);
+				}
+				if (i > 0)
+				{
+					currentCell->up = &maze[i - 1][j];
+					currentCell->unvisited_neighbors.push_back(&maze[i - 1][j]);
+				}
+				if (j > 0)
+				{
+					currentCell->left = &maze[i][j - 1];
+					currentCell->unvisited_neighbors.push_back(&maze[i][j - 1]);
+
+				}
+			}
+		}
+	}
+};
+
+
+// finds and returns the unvisited neighbors of a cell
+vector<Cell*> openPaths(Cell* &currentCell) {
+	vector<Cell*> sum;
+	if (!currentCell->w_left && !currentCell->left->visited)
+	{
+		sum.push_back(currentCell->left);
+
+	}
+	if (!currentCell->w_up && !currentCell->up->visited)
+	{
+		sum.push_back(currentCell->up);
+
+	}
+	if (!currentCell->w_right && !currentCell->right->visited)
+	{
+		sum.push_back(currentCell->right);
+
+	}
+	if (!currentCell->w_down && !currentCell->down->visited)
+	{
+		sum.push_back(currentCell->down);
+
+	}
+	return sum;
+
+}
+
+// takes inputs for the maze to be solved and solves it, then prints the path to a file
+void solveMaze(int M, int N, vector<Maze> & mazes) {
+	int mazeID, entryX, entryY, exitX, exitY;
+
+	cout << "Enter a maze ID between 1 to 5 inclusive to find a path: ";
+	cin >> mazeID;
+	cout << endl << "Enter x and y coordinates of the entry points (x,y) or (column,row): ";
+	cin >> entryX >> entryY;
+	cout << endl << "Enter x and y coordinates of the exit points (x,y) or (column,row): ";
+	cin >> exitX >> exitY;
+
+
+	Maze* maze = &mazes.at(mazeID - 1);
+	// reset the visited status of the cells
+	for (size_t i = 0; i < M; i++)
+	{
+		for (size_t j = 0; j < N; j++)
+		{
+			maze->maze[i][j].visited = false;
+		}
+	}
+
+	array<int, 2> entry = { entryX, entryY };
+	array<int, 2> exit = { exitX, exitY };
+
+	Cell* currentCell = &maze->maze[M - exitY - 1][exitX];
+	Stack<Cell*> s;
+	Cell* nextCell = NULL;
+	s.push(currentCell);
+
+	while (currentCell->coor != entry)
+	{
+		currentCell = s.top();
+		currentCell->visited = true;
+		// define the random generators and randomly select an open path
+		std::random_device rd;
+		std::mt19937 eng(rd());
+
+		if (openPaths(currentCell).size() > 0)
+		{
+			std::uniform_int_distribution<> distr(0, openPaths(currentCell).size() - 1);
+			int rand_int = distr(eng);
+			nextCell = openPaths(currentCell).at(rand_int);
+			nextCell->visited = true;
+			currentCell = nextCell;
+			s.push(currentCell);
+		}
+		else
+		{
+			// find the last unvisited neighbor
+			bool has_neighbor = false;
+			while (!has_neighbor && !s.isEmpty())
+			{
+				if (openPaths(currentCell).size() > 0)
+				{
+					has_neighbor = true;
+				}
+				else
+				{
+					s.pop();
+					if (!s.isEmpty()) currentCell = s.top();
+				}
+			}
+
+		}
+
+	}
+
+	// print the found path to the file named maze_mazeID_path_entryX_entryY_exitX_exitY.txt
+	ofstream fout;
+	string fout_name = "maze_" + to_string(mazeID) + "_path_" + to_string(entryX) + "_" + to_string(entryY) + "_" + to_string(exitX) + "_" + to_string(exitY) + ".txt";
+	fout.open(fout_name);
+	
+	while (!s.isEmpty())
+	{	
+		fout << s.top()->coor[0] << " "
+			<< s.top()->coor[1] << endl;
+		s.pop();
+	}
+
+}
+
+// takes K (number of mazes to be generated), M (rows) and N (columns) as inputs
+void takeinputs(int& mazes, int& rows, int& cols) {
+
+	cout << "Enter the number of mazes: ";
+	cin >> mazes;
+	cout << endl << "Enter the number of rows and columns (M and N): ";
+	cin >> rows >> cols;
+
+}
+
+// breaks the wall (makes w_*direction* = false) between two given cells
+void breakwall(Cell*& a, Cell*& b) {
+	if (a->left == b)
+	{
+		a->w_left = false;
+		b->w_right = false;
+	}
+	else if (a->up == b)
+	{
+		a->w_up = false;
+		b->w_down = false;
+
+	}
+	else if (a->right == b)
+	{
+		a->w_right = false;
+		b->w_left = false;
+
+	}
+	else if (a->down == b)
+	{
+		a->w_down = false;
+		b->w_up = false;
+	}
+	else
+	{
+		throw "a and b are not neighbors!";
+	}
+}
+
+// finds the last cell in the stack that has at least one unvisited neighbor and assigns the currentCell to it
+void find_unvisited(Stack<Cell*> &s, Cell* &currentCell) {
+	bool has_neighbor = false;
+	while (!has_neighbor && !s.isEmpty())
+	{	
+		if (currentCell->unvisited_neighbors.size() > 0)
+		{
+			has_neighbor = true;
+		}
+		else
+		{
+			s.pop();
+			if (!s.isEmpty()) currentCell = s.top();
+		}
+	}
+}
+
+// Main maze generating function
+void generateMazes(int &K, int& M, int& N, vector<Maze> &mazes) {
+
+	Stack<Cell*> s;
+	string fout_name;
+
+	for (size_t id = 0; id < K; id++)
+	{	
+		// Create K many MxN mazes, and store them in a vector
+		mazes.emplace_back(M,N);
+
+		Cell* currentCell = &mazes.at(id).maze[M-1][0]; // add the cell at (0,0) to the stack
+
+		s.push(currentCell);			
+		currentCell->visited = true;
+
+		// Main maze generation loop starts here: 
+		while (!s.isEmpty()) {
+			currentCell = s.top();
+			currentCell->visited = true;
+
+			// check if each neighbors of the cell is visited or not
+			for (int i = 0; i < currentCell->unvisited_neighbors.size(); i++)
+			{
+				if (currentCell->unvisited_neighbors[i]->visited)
+				{
+					currentCell->unvisited_neighbors.erase(currentCell->unvisited_neighbors.begin() + i);
+					i--;
+				}
+			}
+
+			// define the random generators and randomly select an unvisited neighbor
+			std::random_device rd;
+			std::mt19937 eng(rd());
+			Cell* neighborCell = NULL;
+
+			if (currentCell->unvisited_neighbors.size() > 0)
+			{
+				// pick a random unvisited neighbor 
+				std::uniform_int_distribution<> distr(0, currentCell->unvisited_neighbors.size() - 1);
+				int random_id = distr(eng);
+
+				// if the neighbor picked has not been visited before, visit it 
+				if (!currentCell->unvisited_neighbors[random_id]->visited)
+				{
+					neighborCell = currentCell->unvisited_neighbors[random_id];
+					neighborCell->visited = true;
+
+					// delete the picked neighbor from unvisited_neighbors of the cell
+					currentCell->unvisited_neighbors.erase(currentCell->unvisited_neighbors.begin() + random_id);
+
+					// "break" the walls between the two cells 
+					breakwall(currentCell, neighborCell);
+					Cell* temp = currentCell;
+					currentCell = neighborCell;
+					neighborCell->unvisited_neighbors.erase(remove(neighborCell->unvisited_neighbors.begin(), neighborCell->unvisited_neighbors.end(), temp), neighborCell->unvisited_neighbors.end());
+					// add the cell to the stack
+					s.push(currentCell);
+				}
+				else
+				{
+					// if the neighbor we picked has been visited, remove it from the list and pick another neighbor
+					currentCell->unvisited_neighbors.erase(currentCell->unvisited_neighbors.begin() + random_id);
+					for (size_t i = 0; i < currentCell->unvisited_neighbors.size(); i++)
+					{
+						std::uniform_int_distribution<> distr(0, currentCell->unvisited_neighbors.size() - 1);
+						random_id = distr(eng);
+						if (!currentCell->unvisited_neighbors[random_id]->visited)
+						{
+							neighborCell = currentCell->unvisited_neighbors[random_id];
+							neighborCell->visited = true;
+
+							// delete the picked neighbor from unvisited_neighbors of the cell
+							currentCell->unvisited_neighbors.erase(currentCell->unvisited_neighbors.begin() + random_id);
+
+							// "break" the walls between the two cells 
+							breakwall(currentCell, neighborCell);
+							Cell* temp = currentCell;
+							currentCell = neighborCell;
+							neighborCell->unvisited_neighbors.erase(remove(neighborCell->unvisited_neighbors.begin(), neighborCell->unvisited_neighbors.end(), temp), neighborCell->unvisited_neighbors.end());
+							// add the cell to the stack
+							s.push(currentCell);
+						}
+						else
+						{
+							currentCell->unvisited_neighbors.erase(currentCell->unvisited_neighbors.begin() + random_id);
+						}
+					}
+				}
+
+			}
+			else // if there is no unvisited neighbors, backtrack the stack until you find one
+			{
+				find_unvisited(s, currentCell); // assign the currentCell to the cell found and restart the process
+			}
+		}
+
+		// Open the file with appropriate name 
+		ofstream fout;
+		fout_name = "maze_" + to_string(id + 1) + ".txt";
+		fout.open(fout_name);
+
+		// write the maze to the file "fout_name"
+    	fout << M << " " << N << endl;
+
+		for (size_t i = 0; i < M; i++)
+		{
+			for (size_t j = 0; j < N; j++)
+			{
+				Cell* cell = &mazes[id].maze[M - 1 - i][j];
+				fout << "x=" << cell->coor[0] << " "
+					<< "y=" << cell->coor[1] << " "
+					<< "l=" << cell->w_left << " "
+					<< "r=" << cell->w_right << " "
+					<< "u=" << cell->w_up << " "
+					<< "d=" << cell->w_down << endl;
+			}
+		}
+
+	}
+	cout << "\nAll mazes are generated." << endl;
+}
+
+
+int main() {
+	int K, M, N;
+
+	takeinputs(K, M, N);
+
+	vector<Maze> mazes;
+
+	generateMazes(K, M, N, mazes);
+
+	solveMaze(M, N, mazes);
+	return 0;
+}
+
+
